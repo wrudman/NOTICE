@@ -716,24 +716,18 @@ def trace_with_patch(
         
         
         outputs_exp = model.forward(pixel_values=pixel_val_tensor,input_ids=input_ids_tensor, output_attentions=True)
-    
-    # Originally, we reported softmax probabilities for the answers_t token predictions of interest.
-    # Changed to return [clean, corrupted, patched]
     logits = outputs_exp['decoder_logits'][:, -1, :]
     
     # Get correct and incorrect answer tokens.  
     correct_token = answer_tokens[0]
     incorrect_token = answer_tokens[1]
-    
-    # This replaces "base scores" from calculate hidden flow.
 
-    #WILLIAM - why is this not dim=1
     prob_clean_correct = torch.softmax(logits[0], dim=0)[correct_token]
     prob_corrupt_correct = torch.softmax(logits[1], dim=0)[correct_token]
     # Prob_patched_correct is what we originally return.
     prob_patched_correct = torch.softmax(logits[2], dim=0)[correct_token]
     
-    # Probability Difference := P_patched(correct_token) - P_corrupt(correct_token) -- See slide 150
+    # Probability Difference := P_patched(correct_token) - P_corrupt(correct_token)
     p_diff = prob_patched_correct - prob_corrupt_correct
     
     # Logit Difference: 
@@ -748,8 +742,7 @@ def trace_with_patch(
     # This is from Best Practices 
     logit_diff = LD_patched - LD_corrupt
     patching_effect = logit_diff/(LD_clean - LD_corrupt)
-    
-    # prob_patched_correct is what we originally return.
+
     # p_diff should probably be very very close to prob_patched_correct bc prob__corrupt_correct should be small
     # logit_diff is the 'raw' logit diff
     # patching_effect is a pseudo-normalized version of logit diff (from best practices)
@@ -787,16 +780,9 @@ def trace_important_states(
             row.append(scores)
         table.append(torch.stack(row))
     
-    return torch.stack(table) #, outputs
+    return torch.stack(table) 
 
 def calculate_hidden_flow(model, processor, constant_input, clean_input, corrupt_input, answer_tokens, mode, start, num_layers, block_name, kind=None, attn_head=None):
-    
-    #answer_tokens: (correct_token input_id, incorrect_token_input_id)
-    
-    #Added an extra "corrupt copy". 
-    
-    # How is "low_score" used? 
-    # Assume trace_with_patch and trace_important_states are defined elsewhere
     low_score = trace_with_patch(model, processor, constant_input, clean_input, corrupt_input, answer_tokens=answer_tokens, mode=mode, states_to_patch=[], attn_head=attn_head)
 
     if block_name in ['text_encoder', 'text_decoder', 'vision_model']:
@@ -809,10 +795,8 @@ def calculate_hidden_flow(model, processor, constant_input, clean_input, corrupt
     if mode == 'image':
         text=constant_input
     else:
-        text=clean_input #should this be clean or corrupt??
+        text=clean_input 
         
-    # NOTE: may need to detach the scores... 
-    
     return {
         "scores": scores,
         "low_score": low_score,
@@ -860,7 +844,6 @@ def debug_hidden_flow(model, processor, df, block_name, kind,start, end, mode,  
         answer_tokens = processor(text=[row["correct_answer"], row["incorrect_answer"]]).input_ids
         
         # We take index 1 because the processor returns [101, token_idx, 102], we we just take the token. 
-        # This assumes it's only tokenized as ONE input. idk if this is a fair assumption. 
         answer_tokens = [t[1] for t in answer_tokens]
          
         temp = calculate_hidden_flow(model, processor, constant_input, 
@@ -870,6 +853,5 @@ def debug_hidden_flow(model, processor, df, block_name, kind,start, end, mode,  
         
     print("FINISHED PATCHING FOR KIND={}".format(str(kind)))
     print("FINISHED PATCHING FOR ATTN_HEAD={}".format(str(attn_head)))
-    print("THIS IS NEW CODE")
-    
+
     return temp_list
