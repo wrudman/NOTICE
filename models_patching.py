@@ -42,6 +42,11 @@ class BlipTextVisionModelOutput(ModelOutput):
     encoder_last_hidden_state: Optional[Tuple[torch.FloatTensor, ...]] = None
     decoder_logits: Optional[Tuple[torch.FloatTensor, ...]] = None
 
+
+'''
+The Blip Model wrapper is modified here, allowing a forward call to the model without the need to pass labels for training
+Which is necessary for making hooks into the layer modules and heads
+'''
 class ModifiedBlipForQuestionAnswering(BlipForQuestionAnswering):
     def forward(
         self,
