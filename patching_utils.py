@@ -624,11 +624,11 @@ def trace_with_patch(
 
     The convention used by this function is that the zeroth element of the
     batch is the uncorrupted run, and the subsequent elements of the batch
-    are the corrupted runs.  The argument tokens_to_mix specifies an
-    be corrupted by adding Gaussian noise to the embedding for the batch
-    inputs other than the first element in the batch.  Alternately,
-    subsequent runs could be corrupted by simply providing different
-    input tokens via the passed input batch.
+    are the corrupted and to-be-patched runs.
+
+    The constant input is the modality which is uncorrupted - 
+        if mode =="image" : text is the constant input
+        elif mode=="text" : image is the constant input
 
     Then when running, a specified set of hidden states will be uncorrupted
     by restoring their values to the same vector that they had in the
@@ -637,6 +637,11 @@ def trace_with_patch(
     To trace the effect of just a single state, this can be just a single
     token/layer pair.  To trace the effect of restoring a set of states,
     any number of token indices and layers can be listed.
+
+    answer_tokens depicts the tokenized ids of the clean and corrupted answers whose probabilities
+    needs to be obtained
+
+    attn_head passes the attn_head(cross) id which will be hooked from the model
     """
 
 
@@ -689,7 +694,7 @@ def trace_with_patch(
         patched = False    
         for t in patch_spec[layer]:
             # The untuple only selects the first hidden state for attention.
-            # I have is not None bc if attn_head = 0 (index 0) this is not triggered 
+            # attn_ head not None bc if attn_head = 0 (index 0) this is not triggered 
             if attn_head is not None:
                 # break output into attention heads:
                 h = transpose_for_scores(h)
@@ -751,9 +756,14 @@ def trace_with_patch(
     return torch.tensor([prob_patched_correct, p_diff, logit_diff, patching_effect])
 
 
+
+
 def trace_important_states(
     model,processor, constant_input, clean_input, corrupt_input, answer_tokens, mode, start,num_layers,block_name,num=None,kind=None
 , attn_head=None):
+ '''
+ Trace_important_states moves iteratively through all the question tokens making patches at those indices
+ '''
     outputs = []
     
     table = []
@@ -783,8 +793,13 @@ def trace_important_states(
     return torch.stack(table) 
 
 def calculate_hidden_flow(model, processor, constant_input, clean_input, corrupt_input, answer_tokens, mode, start, num_layers, block_name, kind=None, attn_head=None):
+    '''
+    low_score gets the unpatched corrupt scores
+    '''
     low_score = trace_with_patch(model, processor, constant_input, clean_input, corrupt_input, answer_tokens=answer_tokens, mode=mode, states_to_patch=[], attn_head=attn_head)
-
+    '''
+    This performs path patching for the blocks inside the transformer namely text_encoder, text_decoder and vision_model
+    '''
     if block_name in ['text_encoder', 'text_decoder', 'vision_model']:
         scores = trace_important_states(
             model, processor, constant_input, clean_input, corrupt_input, answer_tokens, mode, start, num_layers, block_name, kind=kind, attn_head=attn_head
