@@ -32,6 +32,8 @@ python 2_evaluate_BLIP.py --task_name
 
 After preprocessing, you can find the image and text patching code in `BLIP_patching.py`, and you can use the shell script `BLIP_patching.sh`, to run it. In addition, we provide a start-to-finish tutorial that shows how to obtain heatmaps shown in the paper: `BLIP_patching_tutorial.ipynb` and  `circuit_analysis.ipynb`. 
 
+Code to perform activation patching on Llava is in the Llava directory. Patching code is largely the same as BLIP, however, we make a couple key changes. Given the size of Llava, we only patch text tokens in the prompt and do not patch image tokens for module-wise patching. For attention-head patching, we only patch the last token of the correct answer. Patching one attention head for all layers takes approximately 14 hours on two 3090-GPUs.  
+
 ## Contribution
 
 Code for this project was done by @wrudman, @michalg04, and @vedantpalit. 
