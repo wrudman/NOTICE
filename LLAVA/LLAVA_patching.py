@@ -39,7 +39,7 @@ def main(task, samples, block_name, kind, mode, attn_head):
 
     df_correct = df_correct.head(10) if samples == "mini" else df_correct
 
-    temp_list = debug_hidden_flow(model, processor, df_correct, task, block_name=block_name, kind=kind, start=0, end=32, mode=mode, attn_head=attn_head, knockout=None, image_tensors=image_tensors)
+    temp_list = debug_hidden_flow(model, processor, df_correct, task, block_name=block_name, kind=kind, start=0, end=32, mode=mode, attn_head=attn_head, image_tensors=image_tensors)
     
     if attn_head is not None:  
         pickle_file_path = f'LLAVA_temp_list_{task}_{mode}_corruption_{block_name}_{kind}_head_{attn_head}_{len(df_correct)}.pkl'
