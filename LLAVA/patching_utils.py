@@ -17,6 +17,7 @@ from typing import Any, Optional, Tuple, Union, Sequence
 import contextlib
 import inspect
 from collections import OrderedDict
+from rapidfuzz import process, fuzz
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
