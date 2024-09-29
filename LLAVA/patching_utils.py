@@ -914,7 +914,9 @@ def debug_hidden_flow(model, processor, df, task, block_name, kind, start, end, 
     counter = 0
     temp_list = []
     outputs = []
-    failed_rows = [] 
+    failed_rows = []
+    checkpoint_interval = 100
+    row_counter = 0  # adding this here bc sometimes the dataframe doesn't have ordered indexes
     
     for idx, row in df.iterrows():
         if mode == 'image':
@@ -968,8 +970,17 @@ def debug_hidden_flow(model, processor, df, task, block_name, kind, start, end, 
         except Exception as e:
             print(f"Error processing row {idx}: {str(e)}")
             counter += 1
-            failed_rows.append(idx)  
-
+            failed_rows.append(idx)
+         
+        row_counter += 1
+        # Save progress every 'checkpoint_interval' rows
+        if row_counter % checkpoint_interval == 0:
+            # f'LLAVA_temp_list_{mode}_corruption_{block_name}_{kind}_{len(df_correct)}.pkl'
+            checkpoint_file_path = f'LLAVA_temp_checkpoint_{mode}_corruption_{block_name}_{kind}_rows_{row_counter}.pkl'
+            with open(checkpoint_file_path, 'wb') as file:
+                pickle.dump(temp_list, file)
+            print(f"Checkpoint saved at row {row_counter}: {checkpoint_file_path}")
+     
     print("FINISHED PATCHING FOR KIND={}".format(str(kind)))
     print("FINISHED PATCHING FOR ATTN_HEAD={}".format(str(attn_head)))
 
